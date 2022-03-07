@@ -13,6 +13,7 @@ if not os.path.exists(TENSORBOARD_PATH):
 writer = SummaryWriter(TENSORBOARD_PATH)
 
 # logging
+LOG_DIR = 'output/train_log/'
 logging = get_logging()
 
 
@@ -72,7 +73,7 @@ class Trainner():
         min_validation_loss = np.inf
         # 模型中有BN层(Batch Normalization)和Dropout,需要在训练时添加model.train()
         model.train()
-
+        logging.info("Start")
         for epoch in range(epochs):
             logging.info("**********Model Training**********")
             running_training_loss = 0.0
@@ -85,8 +86,11 @@ class Trainner():
                                 attention_mask = attention_mask_batch,
                                 token_type_ids = token_type_ids_batch
                                 )
+                    logging.info(f"out is {out}")
+                    logging.info(f"labels_batch is {labels_batch}")
                     # Calculate Training loss
                     training_loss = criterion(out, labels_batch)
+                    logging.info(f"batch_loss is {training_loss}")
                     # Step2&Step3
                     training_loss.backward()
                     optimizer.step()
@@ -125,4 +129,4 @@ class Trainner():
                                      model.state_dict(),
                                      optimizer.state_dict() 
                                     )  
-
+        logging.info("End")
