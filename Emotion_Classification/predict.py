@@ -1,12 +1,12 @@
 """
     执行命令：
-    python predict.py --predict_one --model_path output/checkpoints/2022-03-07_model_state.pt 
+    python predict.py --predict_one --model_path output/two_classes_checkpoints/2022-03-09_model_state.pt 
 """
 import argparse
 import warnings
 import numpy as np
 import torch
-from data_process.data_process import get_csv_data
+from data_process.data_process import get_two_classes_csv_data
 from torch.utils.data import DataLoader
 from net import EM_CLS_Net
 from EM_DataSet import Emotion_Dataset
@@ -99,7 +99,7 @@ def predict_one(text, BERT_PATH, trained_model_path):
     for param in pretrained.parameters():
         param.requires_grad_(False)
     checkpoint = torch.load(trained_model_path)
-    EM_model = EM_CLS_Net(pretrained_model=pretrained)
+    EM_model = EM_CLS_Net(pretrained_model=pretrained, n_class=2)
     EM_model.load_state_dict(checkpoint['model_state']) 
     EM_model.eval()
 
@@ -128,7 +128,7 @@ def main(args):
     trained_model_path = args.model_path
     if args.predict:
         # 批量预测处理
-        test_csv = get_csv_data(file_path='data_process/dataset/Automobile_UserPoint_train.csv', file_type='test')
+        test_csv = get_two_classes_csv_data(file_path='data_process/dataset/Automobile_UserPoint_train.csv', file_type='test')
         result = predict(test_csv, BERT_PATH, trained_model_path)
         result.to_csv('result.csv', index=False, encoding='UTF-8')
 
@@ -137,14 +137,9 @@ def main(args):
         # 预测单条文本情感(该text可以通过前端文本框获取)
         text = '这车真垃圾'
         out = predict_one(text, BERT_PATH, trained_model_path)
-        if np.argmax(out)==0:
-            
+        if out > 0.6:
             print("积极情感")
-        if np.argmax(out)==1:
-
-            print("中立情感")
-        if np.argmax(out)==2:
-
+        else:
             print("消极情感")
 
 

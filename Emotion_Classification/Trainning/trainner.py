@@ -14,7 +14,7 @@ writer = SummaryWriter(TENSORBOARD_PATH)
 
 # logging
 LOG_DIR = 'output/train_log/'
-logging = get_logging()
+logging = get_logging(LOG_DIR)
 
 
 class Trainner():
@@ -38,7 +38,7 @@ class Trainner():
             'opt_state' : opt_state
         }
         
-        torch.save(checkpoint, f'output/checkpoints/{TRAIN_TIME}_model_state.pt')
+        torch.save(checkpoint, f'output/two_classes_checkpoints/{TRAIN_TIME}_model_state.pt')
     
 
     def load_checkpoint(self, path, model, optimizer):
@@ -52,7 +52,7 @@ class Trainner():
         return model, optimizer, epoch, min_val_loss
 
     
-    def training(self, model, device, epochs, train_dl, valid_dl, criterion, optimizer, validate_every=1):
+    def training(self, model, device, epochs, train_dl, valid_dl, optimizer, n_class, validate_every=1):
         """
             training所需输入：
             model --> 下游任务model
@@ -60,7 +60,6 @@ class Trainner():
             epochs --> training epochs
             train_dl --> training dataloader
             valid_dl --> validation dataloader
-            criterion --> Loss type
             optimizer --> 优化器
             validate_every --> 每几个epoch进行一次validation
 
@@ -69,6 +68,10 @@ class Trainner():
             2. loss.backward() 计算每个参数的梯度值
             3. optimizer.step() 通过梯度下降调整参数实现参数更新
         """
+        if n_class == 2:
+            criterion = torch.nn.BCELoss()
+        else:
+            criterion = torch.nn.CrossEntropyLoss()
         # save model according to min_validation_loss
         min_validation_loss = np.inf
         # 模型中有BN层(Batch Normalization)和Dropout,需要在训练时添加model.train()
@@ -89,7 +92,10 @@ class Trainner():
                     logging.info(f"out is {out}")
                     logging.info(f"labels_batch is {labels_batch}")
                     # Calculate Training loss
-                    training_loss = criterion(out, labels_batch)
+                    if n_class == 2:
+                        training_loss = criterion(torch.squeeze(out), labels_batch)
+                    else:
+                        training_loss = criterion(out, labels_batch)
                     logging.info(f"batch_loss is {training_loss}")
                     # Step2&Step3
                     training_loss.backward()
@@ -114,7 +120,10 @@ class Trainner():
                                     token_type_ids = token_type_ids_batch
                                     )
                         # Calculate validation loss
-                        validation_loss = criterion(out, labels_batch)
+                        if n_class == 2:
+                            validation_loss = criterion(torch.squeeze(out), labels_batch)
+                        else:
+                            validation_loss = criterion(out, labels_batch)
                         running_validation_loss += validation_loss.item()
             # Visualization
             writer.add_scalar('validation loss', running_validation_loss / len(valid_dl), epoch)
